@@ -1,3 +1,24 @@
+## Overview
+
+This repository contains the full analysis code and supporting data files associated with the initial submission of the manuscript:
+
+**"Sleep lowers awake theta frequency"**
+
+---
+
+## Contents
+- MATLAB scripts for generating all figures (`Fig1intro1.m`, `Fig2controls.m`, `Fig3Units.m`, etc.)
+- Supporting `.mat` data files (e.g., `stateratios-NSD.mat`, `tspeed.mat`)
+- Updated README with citation and Zenodo DOI
+
+---
+
+## Requirements
+- MATLAB R2024a+ (tested)
+- Toolboxes: **buzcode**, **fieldtrip**, **chronux**, **fooof**
+
+---
+
 ## Citation and Versioning
 
 This repository is archived on **Zenodo** to ensure reproducibility.  
@@ -9,7 +30,7 @@ For reproducibility, please cite the **version-specific DOI** corresponding to y
 For general reference, you may use the **concept DOI**.
 
 **Current submission (version v0.1.3):**  
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17122995.svg)](https://doi.org/10.5281/zenodo.17122995)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17127467.svg)](https://doi.org/10.5281/zenodo.17127467)
 
 **Concept DOI (latest version):**  
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17122450.svg)](https://doi.org/10.5281/zenodo.17122450)
@@ -18,7 +39,7 @@ For general reference, you may use the **concept DOI**.
 
 Kaya U, Alam MJ, Giri B, Havekes R, Abel T, Diba K.  
 *Sleep lowers awake theta frequency*. Zenodo.  
-https://doi.org/10.5281/zenodo.17122995
+https://doi.org/10.5281/zenodo.17127467
 
 **BibTeX:**
 ```bibtex
@@ -28,6 +49,6 @@ https://doi.org/10.5281/zenodo.17122995
   year         = {2025},
   publisher    = {Zenodo},
   version      = {v0.1.3},
-  doi          = {10.5281/zenodo.17122995},
-  url          = {https://doi.org/10.5281/zenodo.17122995}
+  doi          = {10.5281/zenodo.17127467},
+  url          = {https://doi.org/10.5281/zenodo.17127467}
 }
