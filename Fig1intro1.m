@@ -1,16 +1,14 @@
-% Call the function to process and save Fooof data
-            blocklist=categorical({'PRE','NSD','SD','TRACK','POST'});
+% Define the list of experimental blocks as categorical
+blocklist = categorical({'PRE','NSD','SD','TRACK','POST'});
 
+% Process and save Fooof data for the defined blocks
 processAndSaveFooofData(blocklist(:));
 
 function processAndSaveFooofData(blocks)
     % Create an instance of SDFigures2 from the experiment.plot package
     sdf = experiment.plot.SDFigures2.instance;
 
-    % Plot the Fooof data using the sdf instance
-    % sdf.plotFooof;
-
-    % Get theta peaks using the sdf instance
+    % Get theta peaks using the sdf instance for the given blocks
     tp = sdf.getThetaPeaks(blocks);
 
     % Get frequency time continuous data from theta peaks
@@ -25,17 +23,17 @@ function processAndSaveFooofData(blocks)
 end
 
 %%
-% Call the function to process state ratios
+% Process and save state ratios for the "NSD" block
 processStateRatios;
 
 function processStateRatios
-    % Define the block category as "POST"
+    % Define the block category as "NSD"
     blockcat = categorical("NSD");
 
     % Create an instance of SessionFactory from the experiment package
     sf = experiment.SessionFactory;
 
-    % Define the selected sessions
+    % Define the selected sessions (indices)
     selected_ses = [1:2 4:12 14:15 18:23];
 
     % Get the session list for the selected sessions
@@ -47,8 +45,9 @@ function processStateRatios
     % Save the state ratios table and session list to a .mat file
     save(sprintf('Scripts/Theta/stateratios-%s.mat', blockcat), 'stateratios', 'tses');
 end
+
 %%
-% Load necessary data if not already in the workspace
+% Load necessary data files if not already in the workspace
 dataFiles = {'tblres', 'resc', 'stateratios', 'tspeed', 'tses'};
 filePaths = {'Scripts/Theta/tblres.mat', 'Scripts/Theta/resc.mat', ...
     'Scripts/Theta/stateratios-NSD.mat', 'Scripts/Theta/tspeed.mat', ...
@@ -65,12 +64,12 @@ clearvars -except tblres resc stateratios tses tspeed
 
 % Initialize session factory and define states and conditions
 sf = experiment.SessionFactory;
-states = unique(tblres.state);
-statesel = {'QWAKE', 'AWAKE'};
-conds = unique(tblres.Condition);
-condsel = {'NSD', 'SD'};
+states = unique(tblres.state);           % All unique states in tblres
+statesel = {'QWAKE', 'AWAKE'};           % States of interest
+conds = unique(tblres.Condition);        % All unique conditions
+condsel = {'NSD', 'SD'};                 % Conditions of interest
 
-% Convert relevant columns to categorical
+% Convert relevant columns to categorical for easier filtering
 resc.Condition = categorical(resc.Condition);
 resc.Block = categorical(resc.Block);
 resc.StateTemp = categorical(resc.StateTemp);
@@ -83,7 +82,7 @@ awakeSum(isnan(awakeSum)) = 0;
 sleepSum(isnan(sleepSum)) = 0;
 stateratios.awakeRatio = awakeSum ./ (awakeSum + sleepSum);
 
-% Prepare figures and layouts
+% Prepare figures and layouts for plotting
 try close(f3); catch, end
 f3 = figure(3); 
 f3.Position = [2600 500 700 700];
@@ -99,45 +98,50 @@ f2 = figure(2);
 f2.Position = [2600 000 700 1000];
 tl2 = tiledlayout(10, numel(condsel));
 
-% Define colors and alpha values
+% Define colors and alpha values for plotting
 Colors = orderedcolors("gem");
 colorQA = Colors(4:5, :);
 colorSD = Colors(1:2, :);
 alphaQA = [0 1; .8 1.5];
 
-% Define axis limits
+% Define axis limits for plots
 ylim1 = [5.5 8.5]; 
 xlim1 = [0 5];
 ylim2 = [5 10];
 
-% Normalize and filter tblres data
+% Normalize and filter tblres data for plotting
 tblres.PowerFooofnorm = normalize(fillmissing(tblres.PowerFooof, ...
     "constant", mean(tblres.PowerFooof, "omitmissing")), "range", [.5 1]);
 tblres.durnorm = normalize((tblres.end - tblres.start), "range", [10 70]);
 tblres.durnorm = (tblres.end - tblres.start) / 2;
-tblres(tblres.durnorm < 4, :) = [];
+tblres(tblres.durnorm < 4, :) = []; % Remove short bouts
+
 % Initialize axis index
 axsi = 1;
 
+% Loop over each condition (NSD, SD)
 for ic = 1:numel(condsel)
-    tblcond = tblres(tblres.Condition == condsel{ic}, :);
-    resccond = resc(resc.Condition == condsel{ic}, :);
-    statecond = stateratios(stateratios.Condition == condsel{ic}, :);
+    tblcond = tblres(tblres.Condition == condsel{ic}, :);         % Filter tblres by condition
+    resccond = resc(resc.Condition == condsel{ic}, :);            % Filter resc by condition
+    statecond = stateratios(stateratios.Condition == condsel{ic}, :); % Filter stateratios by condition
     figure(f1);
     tf1(ic + numel(statesel)) = nexttile(tl1, ic + numel(statesel));
     tf1(ic) = nexttile(ic);
 
+    % Loop over each state (QWAKE, AWAKE)
     for is = 1:numel(statesel)
-        tblcondstate = tblcond(tblcond.state == statesel{is}, :);
+        tblcondstate = tblcond(tblcond.state == statesel{is}, :); % Filter by state
         axes(tf1(ic));
-        plotscatter(tblcondstate, colorQA(is, :), alphaQA(is, :));
+        plotscatter(tblcondstate, colorQA(is, :), alphaQA(is, :)); % Plot scatter
         drawnow;
 
-        sessions = unique(tblcondstate.Session);
+        sessions = unique(tblcondstate.Session); % Get unique sessions
         colors = colororder;
 
+        % Loop over each session
         for ises = 1:numel(sessions)
             tblcondstateses = tblcondstate(tblcondstate.Session == sessions{ises}, :);
+            % Calculate Zeitgeber Time (ZT) for each row
             zt = arrayfun(@(ib) calculateZT(tblcondstateses(ib, :)), 1:height(tblcondstateses))';
             tblcondstateses = [tblcondstateses table(zt, 'VariableNames', {'ZT'})];
 
@@ -150,11 +154,13 @@ for ic = 1:numel(condsel)
             scatterHandle = plotscatter(tblcondstateses, colorQA(is, :), alphaQA(is, :));
             ses = sf.getSessions(sessionID);
 
+            % If last state, plot additional session and state ratio info
             if is == numel(statesel)
                 tspeedsub = tspeed(tspeed.SessionID == sessionID, :);
                 plotses(resccondses, [.3 .3 .3], 1:3, colorQA);
                 ratiosubplots(tl) = plothyp(statecondses);
 
+                % Add colorbar for the first session
                 if ises == 1
                     cb = colorbar("northoutside");
                     cb.Position(3) = cb.Position(3) / 3;
@@ -166,6 +172,7 @@ for ic = 1:numel(condsel)
                 plotses(resccondses, brighten(colors(ic, :), .3), 1, colorQA);
             end
 
+            % Set up interactive callback for scatter plot
             set(scatterHandle, 'ButtonDownFcn', @(src, event) ...
                 updateAxes(src, event, tblcondstateses));
             if ises ~= numel(sessions)
@@ -174,6 +181,7 @@ for ic = 1:numel(condsel)
         end
     end
 
+    % Plot mean session data and state ratio mean
     plotsesmean(resccond, colors(ic, :), 1, colorQA);
     tlHype(ic) = plothypmean(statecond);
     hold off;
@@ -184,10 +192,10 @@ for ic = 1:numel(condsel)
     p{ic} = plotsesmean(resccond, colors(ic, :), 1:3, colorQA); hold on;
 end
 
-% Adjust axis labels and linking
+% Adjust axis labels and link axes for better visualization
 adjustAxisLabels(tf1, tf2, tlHype, ratiosubplots, ylim1, xlim1, ylim2);
 
-% Helper function to calculate ZT
+% Helper function to calculate Zeitgeber Time (ZT)
 function zt = calculateZT(row)
     try
         ti = row.EMG.getTimeInterval;
@@ -197,14 +205,14 @@ function zt = calculateZT(row)
     end
 end
 
-% Helper function to extract session ID
+% Helper function to extract session ID from session string
 function sessionID = extractSessionID(sessionStr)
     sescode = sessionStr; 
     sescode(1:3) = [];
     sessionID = str2double(sescode);
 end
 
-% Helper function to adjust axis labels and linking
+% Helper function to adjust axis labels and link axes
 function adjustAxisLabels(tf1, tf2, tlHype, ratiosubplots, ylim1, xlim1, ylim2)
     tf1(1).XTickLabel = '';
     tf1(2).XTickLabel = '';
@@ -218,14 +226,18 @@ function adjustAxisLabels(tf1, tf2, tlHype, ratiosubplots, ylim1, xlim1, ylim2)
     axes(tf2(1)); ylim(ylim2); xlim(xlim1);
     linkaxes([tf2 ratiosubplots], 'x');
 end
+
 %%
+% Plot scatter legends for QWAKE and AWAKE
 try close(f4); catch, end; f4 = figure(4); f4.Position = [90   800   120   90];
 plotscatterLegend(colorQA(1,:),alphaQA(1,:));
 ax=gca;ax.Box="off";ax.YTick=[];ax.XTick=[];
 try close(f5); catch, end; f5 = figure(5); f5.Position = [90   920   120   90];
 plotscatterLegend(colorQA(2,:),alphaQA(2,:));
 ax=gca;ax.Box="off";ax.YTick=[];ax.XTick=[];
+
 %%
+% Save figures using FigureFactory
 clearvars -except tblres resc stateratios tses
 ff = logistics.FigureFactory.instance('C:\Users\ukaya\University of Michigan Dropbox\Utku Kaya\Kaya Sleep Project\Manuscript\Figures\Fig1-sup');
 figure(1)
@@ -237,7 +249,10 @@ ff.save('Figure1L1')
 figure(5)
 ff.save('Figure1L2')
 
+% --- Helper plotting and analysis functions ---
+
 function [] = plotxcor(resc, stateratios)
+    % Cross-correlation analysis between central frequency and awake ratio
     resc = sortrows(resc, {'Session', 'ZTCenter'});
     stateratios = sortrows(stateratios, {'Session', 'ZTCenter'});
 
@@ -258,6 +273,7 @@ function [] = plotxcor(resc, stateratios)
     xlabel('Awake Proportion');
     ylabel('Central Frequency (Hz)')
 
+    % Pivot and smooth data for session-wise analysis
     a = pivot(resc, Columns = "Session", Rows = "ZTCenter", ...
         DataVariable = "CentralFrequency", IncludeMissingGroups = false);
     data = table2array(a(:, 2:end))';
@@ -288,6 +304,7 @@ function [] = plotxcor(resc, stateratios)
     nexttile(5)
     xlim([0 5])
 
+    % Cross-correlation for each session
     for i = 1:size(resc1, 1)
         [carr(i, :), lags] = xcorr(resc1(i, :), stateratios1(i, :));
     end
@@ -295,10 +312,10 @@ function [] = plotxcor(resc, stateratios)
     plot(t, carr);
     xlabel('XCorr Lag (min)')
     xlim([-60 60]);
-
 end
 
 function [s] = plotscatter(tbl, color,lowcutoffforaplha)
+    % Scatter plot for frequency vs. ZT, colored by power and sized by duration
     tblsorted = sortrows(tbl, "startAbs");
     zt = nan(height(tblsorted), 1);
 
@@ -320,7 +337,7 @@ function [s] = plotscatter(tbl, color,lowcutoffforaplha)
 end
 
 function [s] = plotscatterLegend(color, lowcutoffforalpha)
-% Define data
+% Plot a legend for the scatter plot, showing mapping of color/alpha/size
 hold on;
 x = [1, 2.5, 4, 1, 2.5, 4];
 y = [10, 10, 10, 11, 11, 11];
@@ -341,7 +358,9 @@ end
 legend(labels, 'Location', 'best',NumColumns=2);
 
 end
+
 function [] = plotses(tbl, color, what, colorQA)
+    % Plot session data for different frequency measures
     list = {'CentralFrequency', 'CentralFrequencyQW', 'CentralFrequencyAW'};
     colors = [color; colorQA];
     mediansmooths = [10 30 30];
@@ -359,6 +378,7 @@ function [] = plotses(tbl, color, what, colorQA)
 end
 
 function [] = plotspeed(tbl, color, colorQA)
+    % Plot speed data for different states
     list = unique(tbl.States);
     colors = [color; colorQA];
     mediansmooths = [10 10 10];
@@ -377,6 +397,7 @@ function [] = plotspeed(tbl, color, colorQA)
 end
 
 function [eb] = plotsesmean(tbl, color, what, colorQA)
+    % Plot mean and error bars for session data
     t = hours(unique(tbl.ZTCenter))';
     list = {'CentralFrequency', 'CentralFrequencyQW', 'CentralFrequencyAW'};
     colors = [color; colorQA];
@@ -402,6 +423,7 @@ function [eb] = plotsesmean(tbl, color, what, colorQA)
 end
 
 function ax1 = plothyp(tbl)
+    % Plot hypnogram (awake ratio) as a color bar above the main plot
     ax = gca;
     ax1 = axes(Position = ax.Position);
     ax1.Position(2) = ax1.Position(2) + ax1.Position(4);
@@ -417,6 +439,7 @@ function ax1 = plothyp(tbl)
 end
 
 function ax1 = plothypmean(tbl)
+    % Plot mean hypnogram (awake ratio) across sessions
     ax = gca;
     ax1 = axes(Position = ax.Position);
     ax1.Position(2) = ax1.Position(2) + ax1.Position(4);
@@ -433,6 +456,5 @@ function ax1 = plothypmean(tbl)
     ax1.XAxis.Visible = "off";
     ax1.YAxis.Visible = "off";
     ax1.XTickLabel; drawnow;
-        ax1.XLim=[0 5];
-
+    ax1.XLim=[0 5];
 end

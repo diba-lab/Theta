@@ -1,22 +1,22 @@
 classdef ThetaPeaksContainer
-    %THETAPEAKSCONTAINER Summary of this class goes here
-    %   Detailed explanation goes here
+    %THETAPEAKSCONTAINER Container for theta peak analysis results.
+    %   Stores theta peak data, FOOOF results, and parameters, and provides
+    %   methods for extracting and plotting various features.
 
     properties
-        ThetaPeaks
-        Fooofs
-        Parameters
+        ThetaPeaks   % Struct containing theta peak data
+        Fooofs       % Struct containing FOOOF model results
+        Parameters   % Parameters used for analysis
     end
     properties
-        condlist
-        statelist
-        blocklist
+        condlist     % List of experimental conditions (categorical)
+        statelist    % List of states (categorical)
+        blocklist    % List of blocks (categorical)
     end
 
     methods
         function obj = ThetaPeaksContainer(thpks,fooof,params)
-            %THETAPEAKSCONTAINER Construct an instance of this class
-            %   Detailed explanation goes here
+            % Constructor: Initializes the container with data and extracts lists.
             obj.ThetaPeaks = thpks;
             obj.Fooofs = fooof;
             obj.Parameters=params;
@@ -27,7 +27,9 @@ classdef ThetaPeaksContainer
             obj.statelist=categorical(states);
             obj.blocklist=categorical(blocks);
         end
+
         function tblres = getFreqTimebouts(obj)
+            % Extracts frequency and time-bout features for all theta peaks.
             thpks=obj.ThetaPeaks;
             conds=fieldnames(thpks);
             tblres=[];
@@ -55,12 +57,14 @@ classdef ThetaPeaksContainer
                             for isub=1:ses.thpkList.length
                                 sub=ses.thpkList.get(isub);
                                 tbl1=sub.Bouts;
+                                % Add condition/block/state/session info
                                 tbl2=[repmat(string(conds{ic}),height(tbl1),1), ...
                                     repmat(string(bls{ib}),height(tbl1),1), ...
                                     repmat(string(sts{ist}),height(tbl1),1),...
                                     repmat(string(sess{ises}),height(tbl1),1)];
                                 tbl3=array2table(tbl2,VariableNames={'Condition', ...
                                     'Block','StateTemp','Session'});
+                                % Extract EMG, Speed, Signal, and FOOOF features for each bout
                                 for ibo=1:height(tbl1)
                                     tbl6(ibo,1)=sub.EMG.getTimeWindow( ...
                                         [tbl1(ibo,:).startAbs tbl1(ibo,:).endAbs] ...
@@ -87,6 +91,7 @@ classdef ThetaPeaksContainer
                                     tbl9(ibo,1)=pks.cf;
                                     tbl10(ibo,1)=pks.power;
                                 end
+                                % Convert to tables and concatenate
                                 tbl61=array2table(tbl6,VariableNames={'EMG'});
                                 tbl71=array2table(tbl7,VariableNames={'Speed'});
                                 tbl81=array2table(tbl8,VariableNames={'Signal'});
@@ -101,7 +106,9 @@ classdef ThetaPeaksContainer
                 end
             end
         end
+
         function tblres = getFreqTimeContinuous(obj)
+            % Extracts frequency and power in sliding windows across time.
             winlenght=minutes(30);
             winslidingsize=minutes(3);
             winstart=hours(0):winslidingsize:(hours(5)-winlenght);
@@ -124,12 +131,14 @@ classdef ThetaPeaksContainer
                             ses=st.(sess{ises});
                             thpksm=ses.merge;
                             signal=thpksm.Signal;
+                            % Get awake and QWAKE bouts
                             awakebouts=thpksm.Bouts(thpksm.Bouts.state=='AWAKE',:);
                             awakesignal=signal.getTimeWindow([awakebouts.startAbs awakebouts.endAbs]);
                             qwakebouts=thpksm.Bouts(thpksm.Bouts.state=='QWAKE',:);
                             qwakesignal=signal.getTimeWindow([qwakebouts.startAbs qwakebouts.endAbs]);
                             zt=signal.TimeIntervalCombined.getZeitgeberTime;
                             for iw=1:numel(winstart)
+                                % Main signal window
                                 sigsub=signal.getTimeWindow( ...
                                     zt+[winstart(iw) winend(iw)]);
                                 try
@@ -150,7 +159,7 @@ classdef ThetaPeaksContainer
                                         a1(iw,3)=nan;
                                     end
                                 end
-
+                                % Awake signal window
                                 sigsub=awakesignal.getTimeWindow( ...
                                     zt+[winstart(iw) winend(iw)]);
                                 try
@@ -171,7 +180,7 @@ classdef ThetaPeaksContainer
                                         aw1(iw,3)=nan;
                                     end
                                 end
-
+                                % QWAKE signal window
                                 sigsub=qwakesignal.getTimeWindow( ...
                                     zt+[winstart(iw) winend(iw)]);
                                 try
@@ -192,11 +201,13 @@ classdef ThetaPeaksContainer
                                         qw1(iw,3)=nan;
                                     end
                                 end
+                                % Store window center and duration
                                 t1(iw,1)=wincenter(iw);
                                 t1(iw,2)=seconds(...
                                     sigsub.TimeIntervalCombined.getNumberOfPoints/...
                                     sigsub.TimeIntervalCombined.getSampleRate);
                             end
+                            % Build result table for this session
                             tbl2=[repmat(string(conds{ic}),num,1), ...
                                 repmat(string(bls{ib}),num,1), ...
                                 repmat(string(sts{ist}),num,1),...
@@ -222,9 +233,9 @@ classdef ThetaPeaksContainer
                 end
             end
         end
+
         function plotPeakFreqDist(obj, blockstr)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Plots the distribution of peak frequencies for each condition/block.
             clear ff;
             ff=logistics.FigureFactory.instance(['/data/EphysAnalysis/' ...
                 'Structure/diba-lab_ephys/Analysis/MATLAB/Ephys/' ...
@@ -234,6 +245,7 @@ classdef ThetaPeaksContainer
 
             conds=obj.condlist;
             states=obj.statelist(1);
+            % Determine which blocks to plot
             if any(ismember({'SD','NSD'},blockstr))
                 if numel(obj.blocklist)==4
                     blockidx=[false; true; false; false];
@@ -245,7 +257,6 @@ classdef ThetaPeaksContainer
             end
             block=obj.blocklist(blockidx);
             col=unique(cols(blockidx));
-
 
             try close(10); catch, end
             for icond=1:numel(conds)
@@ -288,6 +299,7 @@ classdef ThetaPeaksContainer
                 thpksms(icond)=thpksm;
                 clear thpksm
             end
+            % Compare distributions between conditions
             cmp=thpksms(1).compare(thpksms(2));
             for ip=1:numel(axs)
                 text(axs(ip),min(axs(ip).XLim),max(axs(ip).YLim),...
@@ -298,9 +310,9 @@ classdef ThetaPeaksContainer
             txt=sprintf('ThetaPeak_dist_Comparison_%s_%s_',block,state);
             ff.save(txt);
         end
+
         function plotSpeed(obj, blockstr,cond)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Plots the distribution of speed for each condition/block.
             clear ff;
             ff=logistics.FigureFactory.instance(['/data/EphysAnalysis/' ...
                 'Structure/diba-lab_ephys/Analysis/MATLAB/Ephys/' ...
@@ -310,6 +322,7 @@ classdef ThetaPeaksContainer
 
             conds=flipud(obj.condlist);
             states=obj.statelist(cond);
+            % Determine which blocks to plot
             if any(ismember({'SD','NSD'},blockstr))
                 if numel(obj.blocklist)==4
                     blockidx=[false; true; false; false];
@@ -321,7 +334,6 @@ classdef ThetaPeaksContainer
             end
             block=obj.blocklist(blockidx);
             col=unique(cols(blockidx));
-
 
             try close(10); catch, end
             for icond=1:numel(conds)
@@ -369,9 +381,9 @@ classdef ThetaPeaksContainer
             txt=sprintf('Speed_dist_Comparison_%s_%s_',block,state);
             ff.save(txt);
         end
+
         function plotPowerDist(obj, blockstr)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Plots the distribution of theta power for each condition/block.
             ff=logistics.FigureFactory.instance(['/data/EphysAnalysis/' ...
                 'Structure/diba-lab_ephys/Analysis/MATLAB/Ephys/' ...
                 'ExperimentSpecific/PlottingRoutines/Printout/fooof']);
@@ -379,6 +391,7 @@ classdef ThetaPeaksContainer
 
             conds=obj.condlist;
             states=obj.statelist(1);
+            % Determine which blocks to plot
             if any(ismember({'SD','NSD'},blockstr))
                 if numel(obj.blocklist)==4
                     blockidx=[false; true; false; false];
@@ -390,7 +403,6 @@ classdef ThetaPeaksContainer
             end
             block=obj.blocklist(blockidx);
             col=unique(cols(blockidx));
-
 
             try close(10); catch, end
             for icond=1:numel(conds)
@@ -434,6 +446,7 @@ classdef ThetaPeaksContainer
                 thpksms(icond)=thpksm;
                 clear thpksm
             end
+            % Compare power distributions between conditions
             cmp=thpksms(1).compare(thpksms(2));
             for ip=1:numel(axs)
                 text(axs(ip),min(axs(ip).XLim),max(axs(ip).YLim),...
@@ -444,7 +457,9 @@ classdef ThetaPeaksContainer
             txt=sprintf('ThetaPower_dist_Comparison_%s_%s_',block,state);
             ff.save(txt);
         end
+
         function plotDurationvsFrequency(obj,blockstr)
+            % Plots the relationship between bout duration and frequency.
             ff=logistics.FigureFactory.instance(['/data/EphysAnalysis/' ...
                 'Structure/diba-lab_ephys/Analysis/MATLAB/Ephys/' ...
                 'ExperimentSpecific/PlottingRoutines/Printout/fooof']);
@@ -456,6 +471,7 @@ classdef ThetaPeaksContainer
             states=obj.statelist(1);
             colorstr1={'Blues7','Oranges7'};
             colorstr2={'RdBu10','RdBu10'};
+            % Determine which blocks to plot
             if any(ismember({'SD','NSD'},blockstr))
                 if numel(obj.blocklist)==4
                     blockidx=[false; true; false; false];
@@ -469,6 +485,7 @@ classdef ThetaPeaksContainer
             numsub=unique(numsubs(blockidx));
             rotate1=unique(rotates(blockidx));
 
+            % Prepare figures and axes
             try close(7); catch, end
             try close(8); catch, end
             try close(9); catch, end
@@ -516,6 +533,7 @@ classdef ThetaPeaksContainer
                     end
                 end
             end
+            % Remove outliers and set axis limits
             tableall(isnan(tableall.Frequency)|tableall.Duration> ...
                 durlim(2)|tableall.Duration<durlim(1),:)=[];
             ylim(durlim);
@@ -604,6 +622,7 @@ classdef ThetaPeaksContainer
                             boutarrs=bout.Signal;
                             sig1=[sig1 boutarrs.Values];
                         end
+                        % Plot frequency and power matrices as images
                         figure(9)
                         ax=subplot(2,numsub,(icond-1)*numsub+isub);hold on;
                         imagesc(linspace(0,size(matf,2)/boutarrp.SampleRate, ...
@@ -634,12 +653,7 @@ classdef ThetaPeaksContainer
                         idx=zscore(arrp1)<2|zscore(arrf1)<5;
                         arrf=arrf1(idx);
                         arrp=arrp1(idx);
-                        %                         s3(icond)=scatter(arrp,arrf, ...
-                        %                             'filled',MarkerFaceColor=mean(colors), ...
-                        %                             MarkerFaceAlpha=.2, ...
-                        %                             SizeData=.5 ...
-                        %                             );
-                        %                         s3(icond)=dscatter(arrp',arrf','plottype','scatter');
+                        % Plot density scatter of power vs frequency
                         s3(icond)=dscatter(arrp',arrf','plottype','contour');
                         colormap(s3(icond),othercolor(colorstr1{icond},7))
                         xlim([0 400]);
@@ -678,6 +692,7 @@ classdef ThetaPeaksContainer
                                 );
                             hold on; box on;
                         end
+                        % Plot power spectrum for each subblock
                         sigosc=neuro.basic.Oscillation(sig1, ...
                             boutarrs.SampleRate);
                         ps=sigosc.getPSpectrumWelch;
@@ -723,6 +738,7 @@ classdef ThetaPeaksContainer
             legend(s1,{'NSD','SD'},Location="best")
             title(blockstr);
 
+            % Plot duration histograms for each condition
             subplot(3,2,6);hold on;
             h1=histogram(tableall.Duration(tableall.Condition==1),linspace( ...
                 durlim(1),durlim(2),100),LineStyle="none", ...
@@ -740,6 +756,7 @@ classdef ThetaPeaksContainer
             ylim([0 1]);
             xlabel('Duration (s)');
 
+            % Save all figures
             ff.save(sprintf('DurationVsFrequency_%s_%s.png',blockstr,states))
             figure(9);
             ff.save(sprintf('DurationVsFrequency_raw%s_%s.png',blockstr,states))
@@ -753,4 +770,3 @@ classdef ThetaPeaksContainer
     end
 
 end
-

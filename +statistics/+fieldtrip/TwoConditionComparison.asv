@@ -1,0 +1,64 @@
+classdef TwoConditionComparison
+    %CLUSTERBASEDPERMUTATIONTEST Summary of this class goes here
+    %   Detailed explanation goes here
+    
+    properties
+        datas
+    end
+    
+    methods
+        function obj = TwoConditionComparison(varargin)
+            datas=varargin;
+            for i=1:nargin
+                if isa(datas{i},'data.basic.ChannelTime')
+                    dat1=data.basic.ChannelTimeFieldtrip(datas{i});
+                    datas{i}=dat1.get_ft_struct;
+                elseif isa(datas{i},'data.basic.ChannelTimeFieldtrip')
+                    datas{i}=datas{i}.get_ft_struct;
+                end
+                t{i}=datas{i}.time{1};
+            end
+            win(1)=max(min(t{1}),min(t{2}));
+            win(2)=min(max(t{1}),max(t{2}));
+            cfg=[];
+            cfg.latency=win;
+            obj.datas{1}=ft_selectdata(cfg,datas{1});
+            obj.datas{2}=ft_selectdata(cfg,datas{2});
+        end
+
+        function stats = getClusterBasedIndepSamplesT(obj)
+            cfg = [];
+            cfg.channel          = 'all'; % specify channels here, 'all' 
+            % for all channels
+            cfg.latency          = 'all'; % specify latency here, 'all' for entire trial
+            cfg.frequency        = 'all'; % specify frequencies here if relevant, 'all' for broadband signals
+            cfg.method           = 'montecarlo'; % use the Monte Carlo Method to calculate the significance probability
+            cfg.statistic        = 'ft_statfun_indepsamplesT'; % use independent samples T-statistic as a measure to evaluate the effect at the sample level
+            cfg.correctm         = 'cluster';
+            % cfg.correctm         = 'tfce';
+            % cfg.correctm         = 'bonferroni';
+            % cfg.correctm         = 'fdr';
+            cfg.clusteralpha     = 0.05; % alpha level of the sample-specific test statistic that will be used for thresholding
+            cfg.clusterstatistic = 'maxsum'; % test statistic that will be used to evaluate the effect of the experiment at the cluster level
+            % cfg.minnbchan        = 1; % minimum number of neighborhood channels that is required for a selected sample to be included in the clustering algorithm
+            cfg.tail             = 0; % -1, 1 or 0 (default); -1 means left, 1 means right, 0 means both directions (two-tailed test)
+            cfg.clustertail      = 0;
+            cfg.alpha            = 0.05; % alpha level of the permutation test
+            cfg.numrandomization = 10000; % number of draws from the permutation distribution
+            data1=obj.datas{1};
+            data2=obj.datas{2};
+            design = zeros(1,numel(data1.trial) + numel(data2.trial));
+            design(1,1:numel(data1.trial)) = 1;
+            design(1,(numel(data1.trial)+1): ...
+                (numel(data1.trial) + numel(data2.trial)))= 2;
+
+            cfg.design           = design; % vector containing the design for the independent samples
+            cfg.ivar             = 1; % number or list with indices indicating the independent variable(s)
+
+
+            % Run the statistical test
+            [stats] = statistics.fieldtrip.ClusterStat(ft_timelockstatistics(cfg, data1, data2));
+        end
+    end
+end
+

@@ -1,39 +1,44 @@
 classdef ThetaPeakCombined
-    %THETAPEAKCOMBINED Summary of this class goes here
-    %   Detailed explanation goes here
+    %THETAPEAKCOMBINED Combines and manages multiple ThetaPeak objects for analysis and plotting.
+    %   This class holds a list of ThetaPeak objects and provides methods to
+    %   merge, compare, and plot their properties in various ways.
     
     properties
-        thpkList
-        Info
+        thpkList    % List of ThetaPeak objects (CellArrayList)
+        Info        % Additional information (structure or object)
     end
     
     methods
         function obj = ThetaPeakCombined(thpk)
-            %THETAPEAKCOMBINED Construct an instance of this class
-            %   Detailed explanation goes here
+            % Constructor: Initializes the ThetaPeakCombined object.
+            %   thpk: a ThetaPeak object to add to the list initially.
             obj.thpkList=CellArrayList();
             try
                 obj.thpkList.add(thpk);
             catch
+                % Ignore errors if thpk is not valid
             end
         end
         
         function obj = plus(obj,thpk)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Overloads the + operator to add a ThetaPeak object to the list.
             obj.thpkList.add(thpk);
         end
+
         function obj = add(obj,thpk,num)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Adds a ThetaPeak object to the list at a specific position.
+            %   thpk: ThetaPeak object to add
+            %   num: position in the list
             obj.thpkList.add(thpk,num);
         end
+
         function newthpks = merge(obj, thpks)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Merges another ThetaPeakCombined object or all objects in the list.
+            %   thpks: another ThetaPeakCombined object (optional)
             if exist('thpks','var')
                 newthpks=experiment.plot.thetaPeak.ThetaPeakCombined;
                 if isa(thpks,'experiment.plot.thetaPeak.ThetaPeakCombined')
+                    % Merge corresponding ThetaPeak objects from both lists
                     for il=1:max(obj.thpkList.length,thpks.thpkList.length)
                         thpk1=obj.thpkList.get(il);
                         thpk2=thpks.thpkList.get(il);
@@ -48,6 +53,7 @@ classdef ThetaPeakCombined
                     newthpks=obj;
                 end
             else
+                % Merge all ThetaPeak objects in the current list
                 for ith=1:obj.thpkList.length
                     a=obj.thpkList.get(ith);
                     if ith==1
@@ -57,13 +63,11 @@ classdef ThetaPeakCombined
                     end
                 end
             end
-            %             try close(7);catch, end; figure(7);obj.plotCF
-            %             try close(8);catch, end;figure(8);thpks.plotCF
-            %             try close(9);catch, end;figure(9);newthpks.plotCF
         end
+
         function cmp = compare(obj,thpks)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            % Compares ThetaPeak objects in this and another ThetaPeakCombined.
+            %   thpks: another ThetaPeakCombined object
             if isa(thpks,'experiment.plot.thetaPeak.ThetaPeakCombined')
                 for il=1:max(obj.thpkList.length,thpks.thpkList.length)
                     thpk1=obj.thpkList.get(il);
@@ -77,11 +81,11 @@ classdef ThetaPeakCombined
             else
                 newthpks=obj;
             end
-            %             try close(7);catch, end; figure(7);obj.plotCF
-            %             try close(8);catch, end;figure(8);thpks.plotCF
-            %             try close(9);catch, end;figure(9);newthpks.plotCF
         end
+
         function axsr=plotCF(obj,rows,row,col)
+            % Plots the cross-frequency (CF) analysis for each ThetaPeak object.
+            %   rows, row, col: subplot grid parameters or axes handles
             if ~exist('rows','var')
                 rows=1;
             else
@@ -126,7 +130,10 @@ classdef ThetaPeakCombined
                 axsr(isub)=gca;
             end            
         end
+
         function axsr=plotSpeed(obj,rows,row,col)
+            % Plots the speed for each ThetaPeak object.
+            %   rows, row, col: subplot grid parameters or axes handles
             if ~exist('rows','var')
                 rows=1;
             else
@@ -171,7 +178,10 @@ classdef ThetaPeakCombined
                 axsr(isub)=gca;
             end            
         end
+
         function axsr=plotCF3(obj,rows,row,col)
+            % Plots a 3rd variant of cross-frequency analysis for each ThetaPeak object.
+            %   rows, row, col: subplot grid parameters or axes handles
             if ~exist('rows','var')
                 rows=1; 
             else
@@ -216,7 +226,10 @@ classdef ThetaPeakCombined
                 axsr(isub)=gca;
             end            
         end
+
         function axsr=plotPW(obj,rows,row,col)
+            % Plots the power (PW) for each ThetaPeak object.
+            %   rows, row, col: subplot grid parameters or axes handles
             if ~exist('rows','var')
                 rows=1; 
             else
@@ -262,7 +275,10 @@ classdef ThetaPeakCombined
                 axsr(isub)=gca;
             end            
         end
+
         function axsr=plotPW3(obj,rows,row,col)
+            % Plots a 3rd variant of power (PW) for each ThetaPeak object.
+            %   rows, row, col: subplot grid parameters or axes handles
             if ~exist('rows','var')
                 rows=1; 
             else
@@ -310,6 +326,9 @@ classdef ThetaPeakCombined
         end
 
         function tableall=plotDurationFrequency(obj,ax,colors)
+            % Plots duration vs frequency for each ThetaPeak object and returns a table.
+            %   ax: axes handle for plotting
+            %   colors: color array for each plot
             if ~exist('ax','var')
                 ax=gca;
             end
@@ -328,7 +347,11 @@ classdef ThetaPeakCombined
                 end
             end
         end
+
         function tableall=plotDurationFrequency3(obj,ax,colors)
+            % Plots a 3rd variant of duration vs frequency for each ThetaPeak object and returns a table.
+            %   ax: axes handle for plotting
+            %   colors: color array for each plot
             if ~exist('ax','var')
                 ax=gca;
             end
@@ -350,4 +373,3 @@ classdef ThetaPeakCombined
 
     end
 end
-

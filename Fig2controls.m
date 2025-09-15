@@ -1,19 +1,20 @@
-
 %% get SD NSD REMs
-sf=experiment.SessionFactory;selected_ses=[1:2 4:12 14:15 18:23 ];
-st=sf.getSessionsTable;
-conditions=categorical({'NSD','SD'});
+sf=experiment.SessionFactory; % Create a session factory object
+selected_ses=[1:2 4:12 14:15 18:23 ]; % Select session numbers
+st=sf.getSessionsTable; % Get table of all sessions
+conditions=categorical({'NSD','SD'}); % Define experimental conditions
 % blocks=categorical({'PRE'});states=categorical({'REM','AWAKE','QWAKE'});
 % blocks=categorical({'NSD'});states=categorical({'REM','AWAKE','QWAKE'});
 % blocks=categorical({'TRACK'});states=categorical({'AWAKE','QWAKE'});
-blocks=categorical({'NSD'});states=categorical({'REM','AWAKE','QWAKE'});
+blocks=categorical({'NSD'});states=categorical({'REM','AWAKE','QWAKE'}); % Set block and states
+
 %% Table Results every bout
 tblres=[];
 for icond=1:numel(conditions)
     condition=conditions(icond);
-    idx_cond=ismember(st.Condition,condition);
-    idx_selected=ismember(st.SessionNo,selected_ses);
-    selected_ses_cond=st.SessionNo(idx_cond & idx_selected);
+    idx_cond=ismember(st.Condition,condition); % Find sessions for this condition
+    idx_selected=ismember(st.SessionNo,selected_ses); % Find selected sessions
+    selected_ses_cond=st.SessionNo(idx_cond & idx_selected); % Sessions matching both
     for iblock=1:numel(blocks)
         block=blocks(iblock);
         for istate=1:numel(states)
@@ -21,30 +22,31 @@ for icond=1:numel(conditions)
             for ises=1:numel(selected_ses_cond)
                 sesno=selected_ses_cond(ises);
                 fname=sprintf(['Scripts/Theta/matfiles/tblres(' ...
-                    'bl%s-st%s-ses%d).mat'],block,state,sesno);
+                    'bl%s-st%s-ses%d).mat'],block,state,sesno); % Filename for saving/loading
                 if isfile(fname)
-                    load(fname)
+                    load(fname) % Load if exists
                 else
-                    ses=sf.getSessions(sesno);
-                    win_sd=ses.getBlock(block)+ses.SessionInfo.Date;
-                    sest=experiment.SessionTheta(ses);
-                    ss=sest.getStates.getWindow(win_sd);
-                    [st_time,st_tbl]=ss.getState(state);
+                    ses=sf.getSessions(sesno); % Get session object
+                    win_sd=ses.getBlock(block)+ses.SessionInfo.Date; % Get time window for block
+                    sest=experiment.SessionTheta(ses); % Create theta session object
+                    ss=sest.getStates.getWindow(win_sd); % Get states in window
+                    [st_time,st_tbl]=ss.getState(state); % Get table for this state
                     height1=height(st_tbl);
                     if height1>0
-                        thetaratio=sest.getThetaRatioBuzcode;
-                        sw=sest.getSlowWaveBroadbandBuzcode;
+                        thetaratio=sest.getThetaRatioBuzcode; % Get theta ratio
+                        sw=sest.getSlowWaveBroadbandBuzcode; % Get slow wave
                         try
-                            emg=sest.getEMG.getTimeWindow(win_sd);
+                            emg=sest.getEMG.getTimeWindow(win_sd); % Get EMG
                         catch ME
                         end
                         try
-                            spd=sest.getSpeed.getTimeWindow(win_sd);
+                            spd=sest.getSpeed.getTimeWindow(win_sd); % Get speed
                         catch ME
                         end
-                        th_sd=sest.getThetaChannel.getTimeWindow(win_sd);
+                        th_sd=sest.getThetaChannel.getTimeWindow(win_sd); % Get theta channel
                         %%
                         clear sesstr
+                        % Initialize structure for storing bout data
                         sesstr.Condition=repmat(condition,height1,1);
                         sesstr.Block=repmat(block,height1,1);
                         sesstr.StateTemp=repmat(state,height1,1);
@@ -56,55 +58,57 @@ for icond=1:numel(conditions)
                         sesstr.ThetaRatio=neuro.basic.ChannelsThreshold.empty(0,1);
                         sesstr.SWSlope=neuro.basic.ChannelsThreshold.empty(0,1);
                         for ibout=1:height(st_tbl)
-                            twin=[st_tbl(ibout,:).AbsStart st_tbl(ibout,:).AbsEnd];
-                            sesstr.Signal(ibout,1)=th_sd.getTimeWindow(twin);
-                            sesstr.EMG(ibout,1)=emg.getTimeWindow(twin);
+                            twin=[st_tbl(ibout,:).AbsStart st_tbl(ibout,:).AbsEnd]; % Bout window
+                            sesstr.Signal(ibout,1)=th_sd.getTimeWindow(twin); % Get theta signal
+                            sesstr.EMG(ibout,1)=emg.getTimeWindow(twin); % Get EMG
                             try
-                                sesstr.Speed(ibout,1)=spd.getTimeWindow(twin);
+                                sesstr.Speed(ibout,1)=spd.getTimeWindow(twin); % Get speed
                             catch ME
                                 sesstr.Speed(ibout,1)=[];
                             end
-                            sesstr.ThetaRatio(ibout,1)=thetaratio.getTimeWindow(twin);
-                            sesstr.SWSlope(ibout,1)=sw.getTimeWindow(twin);
-                            sesstr.Signal(ibout,1)=th_sd.getTimeWindow(twin);
+                            sesstr.ThetaRatio(ibout,1)=thetaratio.getTimeWindow(twin); % Theta ratio
+                            sesstr.SWSlope(ibout,1)=sw.getTimeWindow(twin); % Slow wave slope
+                            sesstr.Signal(ibout,1)=th_sd.getTimeWindow(twin); % Theta signal
                             % ch.getFrequencyThetaInstantaneous
                         end
-                        tbl_ses=[struct2table(sesstr) st_tbl(:,{'AbsStart','AbsEnd'})];
+                        tbl_ses=[struct2table(sesstr) st_tbl(:,{'AbsStart','AbsEnd'})]; % Combine into table
                         % plottbl(tbl_ses,ses)
-                        save(fname,'tbl_ses')
+                        save(fname,'tbl_ses') % Save table for this session/block/state
                     end
                 end
-                tblres=[tblres; tbl_ses];
+                tblres=[tblres; tbl_ses]; % Append to results
             end
         end
     end
 end
 save(sprintf('Scripts/Theta/matfiles/tblres-%s-%s.mat', ...
-    join(string(states)),join(string(blocks))),'tblres','-v7.3');
+    join(string(states)),join(string(blocks))),'tblres','-v7.3'); % Save all results
+
 %%
 clearvars -except tblres blocks states
 if ~exist('tblres','var')
     s=load(sprintf('Scripts/Theta/matfiles/tblres-%s-%s.mat', ...
         join(string(states)),join(string(blocks))));tblres=s.tblres;clear s;
-    tblres=neuro.state.StateTable(tblres,experiment.SessionFactory);
+    tblres=neuro.state.StateTable(tblres,experiment.SessionFactory); % Convert to StateTable
 end
+
 %% Get Fooofs for every bout and save them in a table
-tblres=tblres.getDurationLongerThan(seconds(3));
-tbl_theta_peak=tblres.getFooofEstimatedTable;
+tblres=tblres.getDurationLongerThan(seconds(3)); % Filter for bouts longer than 3s
+tbl_theta_peak=tblres.getFooofEstimatedTable; % Get FOOOF estimates
 save(sprintf('Scripts/Theta/matfiles/tbl_theta_peak-%s-%s.mat', ...
     join(string(states)),join(string(blocks))),'tbl_theta_peak','-v7.3')
+
 %% Get Running window theta
 s=load(sprintf('Scripts/Theta/matfiles/tblres-%s-%s.mat', ...
     join(string(states)),join(string(blocks))));tblres=s.tblres;clear s;
 tblres=neuro.state.StateTable(tblres,experiment.SessionFactory);
 
 %% Get running window of fooof theta and save it in a table
-
 s=load(sprintf("Scripts/Theta/stateratios-%s.mat",blocks));s_ratios=s.stateratios;
 
 %% Get Running window theta
 states_sub=categorical({'AWAKE','QWAKE'});
-runningWindowTheta = tblres.getRunningWindows(s_ratios,states_sub);
+runningWindowTheta = tblres.getRunningWindows(s_ratios,states_sub); % Compute running window theta
 save(sprintf('Scripts/Theta/matfiles/runningWindowTheta-%s-%s.mat', ...
     join(string(states_sub)),join(string(blocks))),'runningWindowTheta','-v7.3')
 %%
@@ -112,36 +116,40 @@ save(sprintf('Scripts/Theta/matfiles/runningWindowTheta-%s-%s.mat', ...
 clear
 sf=experiment.SessionFactory; selected_ses=[1:2 4:12 14:15 18:23 ];
 st=experiment.SessionList(sf.getSessions(selected_ses),selected_ses);
-st.saveRippleEventPropertiesTable;
+st.saveRippleEventPropertiesTable; % Save ripple event properties for all sessions
+
 %% plot sample
 % t_interest(1,1)=hours(2)+minutes(.3);duration=seconds(5);
 % t_interest(1,2)=t_interest(1,1)+duration;
 % win_interest=time.ZT(t_interest);
 % sesno_interes=1;
 % st.plotRippleEventProperties(sesno_interes,win_interest);
+
 %%
 clear
 sf=experiment.SessionFactory; selected_ses=[1:2 4:12 14:15 18:23 ];
 st=experiment.SessionList(sf.getSessions(selected_ses),selected_ses);
-rippleEventPropertiesTableCombined=st.getRippleEventPropertiesTableCombined;
+rippleEventPropertiesTableCombined=st.getRippleEventPropertiesTableCombined; % Combine ripple event properties
+
 %%
 % Eliminate weak channels
 % Initialization
 sf = experiment.SessionFactory;
 rippleEventPropertiesTableCombined1 = groupfilter( ...
     rippleEventPropertiesTableCombined, {'Session', 'peak'}, ...
-    @filter1, "power_envelope");
-riptbl = neuro.ripple.RippleTable(rippleEventPropertiesTableCombined1);
+    @filter1, "power_envelope"); % Filter to keep only strongest channel per session/peak
+riptbl = neuro.ripple.RippleTable(rippleEventPropertiesTableCombined1); % Create RippleTable
+
 %%
 ff=logistics.FigureFactory.instance('./Scripts/Theta/ripple');
-% First scenario
+% First scenario: plot ripple frequency
 f=figure(1); clf; tiledlayout(10, 2);f.Position=[2562 -1112 759 2453];
 vars1 = {"frequency_wavelet", "frequency_wavelet_nowhiten", "frequency_count", "frequency_count_large"};
 varstr1 = {'wavelet 100-250', 'wavelet no whitening 100-250', 'count 120-200', 'count large 100-250'};
 processAndPlot(sf, riptbl, vars1, varstr1, 'Frequency (Hz)', [150 200],false);
 ff.save('RippleFreq')
 
-% Second scenario
+% Second scenario: plot ripple power
 f=figure(2); clf; tiledlayout(10, 2);f.Position=[2562 -1112 759 2453];
 vars2 = {"power_envelope", "power_envelope_largefilter"};
 varstr2 = {'env 120-200', 'env 100-250'};
@@ -149,16 +157,13 @@ processAndPlot(sf, riptbl, vars2, varstr2, 'Power (z-score)', [-1.5 1.5],true);
 ff.save('RipplePow')
 
 %%
-% Second scenario
+% Third scenario: plot SW amplitude
 riptbl = neuro.ripple.RippleTable(rippleEventPropertiesTableCombined);
 f=figure(3); clf; tiledlayout(10, 2);f.Position=[2562 -1112 759 2453];
 vars2 = {"SWMax"};
 varstr2 = {'SW Amplitude'};
 processAndPlot(sf, riptbl, vars2, varstr2, 'SW Amp (z-score)', [-1.5 1.5],true);
 ff.save('SWAmp')
-
-
-
 
 %% Get Running window ripple
 % Get running window of fooof theta and save it in a table
@@ -169,30 +174,32 @@ runningWindowRipples=[];
 for ises=1:numel(sessions)
     sesno=sessions(ises);
     sesfname=sprintf('Scripts/Theta/matfiles-rip/runningWindowRipple-%d-%s.mat', ...
-        sesno, join(string(blocks)));
+        sesno, join(string(blocks))); % Filename for this session
     if ~isfile(sesfname)
-        ses=experiment.SessionRipple(sf.getSessions(sesno));
+        ses=experiment.SessionRipple(sf.getSessions(sesno)); % Get ripple session
         idx_ses=s_ratios.Session==sesno;
         s_sub=s_ratios(idx_ses,:);
         s=load(sprintf("Scripts/Theta/matfiles-rip/" + ...
             "rippleEventSignalTable-ses%d.mat",sesno));
         rippleEventSignalTable=neuro.ripple.RippleTable( ...
             s.rippleEventSignalTable);clear s;
-        runningWindowRipple=rippleEventSignalTable.getRunningWindows(s_sub);
+        runningWindowRipple=rippleEventSignalTable.getRunningWindows(s_sub); % Compute running window
         save(sesfname,'runningWindowRipple','-v7.3')
     else
         s=load(sesfname);runningWindowRipple=s.runningWindowRipple;clear s;
     end
-    runningWindowRipples=[runningWindowRipples; runningWindowRipple];
+    runningWindowRipples=[runningWindowRipples; runningWindowRipple]; % Append to all
 end
 save(sprintf('Scripts/Theta/matfiles-rip/runningWindowRipple-%s.mat', ...
-    join(string(blocks))),'runningWindowRipples','-v7.3');
+    join(string(blocks))),'runningWindowRipples','-v7.3'); % Save all running window ripples
+
 %% plot running Windows Ripple
 s=load(sprintf('Scripts/Theta/matfiles-rip/runningWindowRipple-%s.mat', ...
     join(string(blocks))));runningWindowRipples=s.runningWindowRipples;clear s;
 % rsub=runningWindowRipples(runningWindowRipples.Channel==1,:); clear
 % runningWindowRipples;
 rsub=runningWindowRipples;clear runningWindowRipples;
+
 %%
 isplot=false;
 if isplot
@@ -205,9 +212,9 @@ if ~isfile(fname1)
     runningWindowRipplesCal=[];
     for iwin=1:height(rsub)
         line1=rsub(iwin,:);
-        pw=neuro.power.PowerSpectrumRipple(line1.p_welch);
-        pp=neuro.power.PowerSpectrumRipple(line1.p_ps);
-        pc=neuro.power.PowerSpectrumRipple(line1.p_ch);
+        pw=neuro.power.PowerSpectrumRipple(line1.p_welch); % Welch spectrum
+        pp=neuro.power.PowerSpectrumRipple(line1.p_ps); % pspectrum
+        pc=neuro.power.PowerSpectrumRipple(line1.p_ch); % chronux
         categories=categorical({'welch','pspectrum','chronux'});
         subt1=line1(:,{'Session','Condition','ZTStart','ZTCenter','ZTEnd'});
         try
@@ -293,13 +300,12 @@ for ips_method=1:numel(ps_methods)
         join(string(blocks)),ps_method_str));
 
 end
-%% plot Power spectrum time plot.
 
+%% plot Power spectrum time plot.
 clearvars -except fname1 blocks
 s=load(fname1);runningWindowRipplesCal=s.runningWindowRipplesCal;clear s;
 s=load(sprintf('Scripts/Theta/matfiles-rip/runningWindowRipple-%s.mat', ...
     join(string(blocks))));runningWindowRipples=s.runningWindowRipples;clear s;
-
 
 %% plot running Windows THETA
 states_sub=categorical({'AWAKE','QWAKE'});
@@ -449,7 +455,7 @@ dur=minutes(round(logspace(log10(1),log10(60),7)));
 f_thetapeaktable=sprintf('./Scripts/Theta/matfiles/retro-%s-%s.mat', ...
     join(string(cond)),num2str(minutes(dur)));
 if ~isfile(f_thetapeaktable)
-    tbl_theta_peak2=tbl_theta_peak1.getRetro(dur);
+    tbl_theta_peak2=tbl_theta_peak1.getRetro(dur); % Get retro table for durations
     save(f_thetapeaktable, "tbl_theta_peak2");
 else
     s=load(f_thetapeaktable);
@@ -481,7 +487,7 @@ axes(ax1)
 tbl_theta_peak2.Table=...
     tbl_theta_peak2.Table(tbl_theta_peak2.Table.ZTstart>hours(2),:);
 tbl_sleep=tbl_theta_peak2.getStateWithCertainHistory( ...
-    categorical("REM"),duration,durmin);
+    categorical("REM"),duration,durmin); % Get REM history
 s1=tbl_sleep.plotscatter(ColorOrRd(2,:));
 hold on;
 axes(ax11);
@@ -489,7 +495,7 @@ tbl_sleep.plotHistogram(ColorOrRd(2,:));view([90 -90]);hold on
 axes(ax2);
 tbl_sleep.plotscatterRetro(ColorOrRd(2,:),minutes(duration))
 tbl_sleep=tbl_theta_peak2.getStateWithCertainHistory( ...
-    categorical("SWS"),duration,durmin);
+    categorical("SWS"),duration,durmin); % Get SWS history
 axes(ax1)
 s2=tbl_sleep.plotscatter(ColorOrRd(1,:));
 legend([s2 s1],{'SWS','REM'})
@@ -516,7 +522,7 @@ dur2=minutes(round(logspace(log10(1),log10(30),4)));
 interest=categorical({'SWS','REM'});rest=categorical({'A-WAKE','Q-WAKE'});
 %%
 tbl_theta_peak2=tbl_theta_peak1.getRetroAlt( ...
-    dur2,interest,rest);
+    dur2,interest,rest); % Get alternate retro table
 save(sprintf('./Scripts/Theta/matfiles/retro-%s-%s-%s-%s.mat', ...
     join(string(cond)),num2str(minutes(dur2)), ...
     join(string(interest)),join(string(rest))), "tbl_theta_peak2");
@@ -538,7 +544,7 @@ linkaxes(ax,'xy');
 cf=7;others=[13:5:43];
 istate=1;
 % cf=7;others= [14:5:44]+istate-1;
-lr=tbl_theta_peak2.getLinearRegressor(cf,others);
+lr=tbl_theta_peak2.getLinearRegressor(cf,others); % Get linear regression model
 lr.getWeights
 figure(istate);clf;tiledlayout('flow','TileSpacing','compact');
 lr.plotPredictors();
@@ -555,6 +561,7 @@ ff=logistics.FigureFactory.instance('./Scripts/Theta/Figures');
 str=join(lr.Model.CoefficientNames(2:end));
 ff.save(sprintf('GLM-%s',str{1}))
 
+% Helper function to plot power spectrum for each bout
 function []=plottbl(tbl,ses)
 for ibout=1:height(tbl)
     tbl1=tbl(ibout,:);
@@ -564,6 +571,8 @@ for ibout=1:height(tbl)
     a.plot;
 end
 end
+
+% Helper function to filter for max value in group
 function [b]=filter1(x)
 b=false(size(x));
 b1=find(ismember(x,max(x,[],"includemissing")),1);
@@ -572,9 +581,8 @@ if ~any(b)
     b(1)=true;
 end
 end
-% get Track Awake and Qwake
-% Function to handle the repetitive plotting
 
+% Function to handle the repetitive plotting
 function processAndPlot(sf, riptbl, vars, varstr, ylabelStr, ylimVals,iszscore)
 st = sf.getSessionsTable;
 sess = riptbl.getSessions;
@@ -616,6 +624,7 @@ xlim([0 5]);
 ylim(ylimVals);
 end
 
+% Helper function to plot hypnogram mean
 function ax1 = plothypmean(tbl,time,xlim,move)
 ax = gca;
 ax1 = axes(Position = ax.Position);
