@@ -11,7 +11,7 @@ This release contains the full analysis code and data files associated with the 
 
 ## Requirements
 - MATLAB R2025a (tested)
-- Toolboxes: Signal Processing, Statistics and Machine Learning
+- Toolboxes: buzcode, fieldtrip, chronux, fooof
 
 ## Usage
 Run the figure scripts directly in MATLAB to reproduce the analyses presented in the paper.  
