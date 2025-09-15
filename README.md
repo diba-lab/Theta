@@ -18,7 +18,7 @@ Run the figure scripts directly in MATLAB to reproduce the analyses presented in
 Example:  
 ```matlab
 >> Fig1intro1
-
+```
 
 
 ## How to cite
@@ -42,3 +42,4 @@ Zenodo. https://doi.org/10.5281/zenodo.17122451
   doi          = {10.5281/zenodo.17122451},
   url          = {https://doi.org/10.5281/zenodo.17122451}
 }
+```
