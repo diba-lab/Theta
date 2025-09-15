@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the following reference."
+title: "Sleep lowers awake theta frequency"
+version: "v0.1.3"
+doi: 10.5281/zenodo.17122995
+date-released: 2025-09-15
+authors:
+  - family-names: "Kaya"
+    given-names: "Utku"
+    affiliation: "Dept of Psychology, University of Michigan, Ann Arbor, MI, USA"
+  - family-names: "Alam"
+    given-names: "Md Jahangir"
+    affiliation: "Division of Gastroenterology and Hepatology, University of Michigan Medical School, Ann Arbor, MI, USA"
+  - family-names: "Giri"
+    given-names: "Bapun"
+    affiliation: "Centre for Neuroscience, India Institute of Science, Bangalore, India"
+  - family-names: "Havekes"
+    given-names: "Robbert"
+    affiliation: "University of Groningen, The Netherlands"
+  - family-names: "Abel"
+    given-names: "Ted"
+    affiliation: "Department of Neuroscience and Pharmacology, Iowa Neuroscience Institute, University of Iowa, USA"
+  - family-names: "Diba"
+    given-names: "Kamran"
+    affiliation: "Dept of Anesthesiology and Neuroscience Graduate Program, University of Michigan Medical School, Ann Arbor, MI, USA"
