@@ -27,7 +27,7 @@ If you use this code in your work, please cite:
 
 Utku Kaya, Md Jahangir Alam, Bapun Giri, Robbert Havekes, Ted Abel, & Kamran Diba.  
 **Sleep lowers awake theta frequency**.  
-Zenodo. https://doi.org/10.5281/zenodo.17122451
+Zenodo. https://doi.org/10.5281/zenodo.17122450
 
 ---
 
@@ -39,7 +39,7 @@ Zenodo. https://doi.org/10.5281/zenodo.17122451
   month        = {Sep},
   year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.17122451},
-  url          = {https://doi.org/10.5281/zenodo.17122451}
+  doi          = {10.5281/zenodo.17122995},
+  url          = {https://doi.org/10.5281/zenodo.17122450}
 }
 ```
