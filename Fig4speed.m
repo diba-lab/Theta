@@ -1,28 +1,42 @@
+% Load required data tables
 load('Scripts/Theta/tblresBouts.mat')
 load('Scripts/Theta/stateratios.mat')
+
+% Create session factory and get sessions table
 sf=experiment.SessionFactory;
 st=sf.getSessionsTable;
+
+% Create plotting object
 fuce=experiment.plot.unit.FiguresUnitCE;
+
 %%
+% Define filename for saving/loading processed data
 fname="Scripts/Theta/Speed/corr1tbl.mat";
 alltbl=[];
+
+% Check if processed data exists, otherwise process and save
 if isfile(fname)
+    % Load previously processed data
     s=load(fname);T1=s.T1;corr1tbl2=s.corr1tbl2;alltbl=s.alltbl;clear s;
 else
-    % Here I got the high theta powers
+    % Filter bouts with high theta power and frequency below 10 Hz
     tblresBouts1=tblresBouts(tblresBouts.PowerFooof>.75,:);
     tblresBouts1=tblresBouts1(tblresBouts1.CentralFrequenyFooof<10,:);
-    % subtbl=subtbl(subtbl.CentralFrequenyFooof<8.5,:);
-
+    
+    % Create figure factory for saving figures
     ff=logistics.FigureFactory.instance('./Scripts/Theta/Speed');
     sf=experiment.SessionFactory;
+    
+    % Select session indices to analyze
     selected_ses=[1:2 4:12 14:15 18:23 ];
-    % selected_ses=[10:12 14:15 18:23 ];
-    %             selected_ses=[1 2 11 12 21 22 ];
     tses=sf.getSessions(selected_ses);
+    
+    % Define colors for plotting
     colors=othercolor('PRGn8',2);
     colorqwake=colors(2,:);colorawake=colors(1,:);
-    isplot=true;
+    isplot=true; % Flag for plotting
+    
+    % Initialize variables for storing results
     tableBoutSpeed=[];
     spdsesbouts=[];
     statessesbouts=[];
@@ -36,24 +50,18 @@ else
     corr1tbl.coef1=[];
     corr1tbl.coef0=[];
     item=1;
+    
+    % Loop over selected sessions
     for ises=1:numel(tses)
         ses=tses(ises);
-        % sest=experiment.SessionTheta(ses);
-        % th=sest.getThetaChannel;
-        % th1=th.getTimeWindow(time.ZT(hours([0 5])));
-        % fname=strcat(fullfile(sest.getBasePath, sest.getBaseName),".thetaPeak.mat");
-        % if ~exist(fname,'file')
-        %     freq=th1.getFrequencyThetaInstantaneous;
-        %     save(fname,'freq');
-        % else
-        %     S=load(fname);
-        %     freq=S.freq;
-        % end
-        pos=ses.getPosition;
+        pos=ses.getPosition; % Get position data
+        
         if ~isempty(pos)
-            tw=ses.getBlock('SD');
-            possd=pos.getWindow(tw);
+            tw=ses.getBlock('SD'); % Get block for sleep deprivation
+            possd=pos.getWindow(tw); % Get position data for block
+            
             if height(possd.data)>1
+                % Plot position and speed if enabled
                 if isplot
                     fig1=figure(1);clf;fig1.Position=[2562 0 1439/3 1805/3];
                     tl1=tiledlayout(3,3);
@@ -61,14 +69,19 @@ else
                     possd.plot
                 end
                 ax1.YLabel.String='Postition (cm)';
+                
+                % Get and filter speed data
                 spd=possd.getSpeed;
                 spd=spd.getMedianFiltered(1).getGaussianFiltered(3);
+                
                 if isplot
                     ax2= nexttile(4,[1 3]);
                     spd.plot
                     linkaxes([ax1 ax2],'x')
                 end
                 ax2.XLim=[0 5];
+                
+                % Select bouts for current session
                 subtbl=tblresBouts1( ...
                     strcmp(tblresBouts1.Session,sprintf('ses%d',selected_ses(ises))) ...
                     ,:);
@@ -79,12 +92,15 @@ else
                 end
                 ax2.YLabel.String='Speed (cm/s)';
                 st=spd.TimeIntervalCombined.getStartTime;
+                
+                % Loop over bouts and calculate mean speed for each
                 for itbl=1:height(subtbl)
                     win=[subtbl(itbl,:).startAbs subtbl(itbl,:).endAbs];
                     if(st<win(1)&&et>win(1))||(st<win(2)&&et>win(2))
                         ab=spd.getTimeWindow(win);
                         speed(itbl)=mean(ab.Values);
                     end
+                    % Highlight bout windows on plot
                     if isplot
                         x=hours(win-spd.TimeIntervalCombined.getZeitgeberTime);
                         y=[ax2.YLim(1) ax2.YLim(1) ax2.YLim(2) ax2.YLim(2)];
@@ -92,20 +108,17 @@ else
                         patch([x fliplr(x)],y,colors(coloridx,:),FaceAlpha=.2,EdgeColor='none')
                     end
                 end
-                % yyaxis("right")
-                % pw=freq.Power;pw1=pw.getDownSampled(25);pw2=pw1.getMedianFiltered(1).getGaussianFiltered(5);
-                % pw=sest.getThetaPowerBuzcode;
-                % pw.plot
-                % sw=sest.getThetaRatioBuzcode;
-                % sw.plot
-                % cf=freq.CF;cf1=cf.getDownSampled(25);cf2=cf1.getMedianFiltered(1).getGaussianFiltered(5);
-                % cf2.plot;hold on;
+                
+                % Add speed to bout table
                 speedtbl=array2table(speed,VariableNames={'Speed'});
                 subtbl=[subtbl speedtbl];
-                % Calculate the correlation coefficient
+                
+                % Remove rows with NaN values
                 subtbl=subtbl(~any(isnan([subtbl.Speed, ...
                     subtbl.CentralFrequenyFooof])'),:);
                 tableBoutSpeed=[tableBoutSpeed; subtbl];
+                
+                % Store speed windows and states for further analysis
                 win=[subtbl.startAbs subtbl.endAbs];
                 spdsesbouts=[spdsesbouts;spd.getTimeWindow(win)];
                 stidx=subtbl.state=="QWAKE";
@@ -116,6 +129,8 @@ else
                 spdsesbouts=[spdsesbouts; spd.getTimeWindow(win)];
                 statessesbouts=[statessesbouts;"WAKE"; "QWAKE";"AWAKE"];
                 sesidsesbouts=[sesidsesbouts; repmat(selected_ses(ises),3,1)];
+                
+                % Define time windows for analysis
                 twindows={hours([0 5/3]) hours([5/3 10/3]) hours([10/3 5])};
                 st=hours(hours(subtbl.startAbs-ses.SessionInfo.ZeitgeberTime...
                     -ses.SessionInfo.Date));
@@ -123,6 +138,8 @@ else
                     -ses.SessionInfo.Date));
                 subtbl=[subtbl array2table(st,VariableNames="StartZT")...
                     array2table(en,VariableNames="EndZT")];
+                
+                % For each time window, calculate correlation and plot
                 if isplot
                     for iwin=1:numel(twindows)
                         twin=twindows{iwin};
@@ -135,9 +152,8 @@ else
                             % Fit a first-degree polynomial (line) to the data
                             x_fit = linspace(min(tbltoplot.Speed), max(tbltoplot.Speed), ...
                                 numel(tbltoplot.Speed));
-
                             y_fit = polyval(p, x_fit); % Generate y-values from the fitted line
-
+                            
                             % Plot the data points and the linear regression line
                             ax3(iwin)=nexttile(6+iwin);hold on;
                             states=sort(unique(subtbl.state),'descend');
@@ -153,7 +169,6 @@ else
                             ax3(iwin).XLim=[0 10];ax3(iwin).YLim=[5 10];
                             % Define the different marker sizes
                             sizes = [20, 50, 100];
-
                             % Create a custom legend for marker sizes
                             legendSizes = {'20 s', '50 s', '100 s'};
                             for i = 1:numel(sizes)
@@ -163,18 +178,20 @@ else
                                 text(7 + 0.4, max(ax3(iwin).YLim) - (numel(sizes) + i)*0.2, ...
                                     legendSizes{i});
                             end
-
-                            % plot(x_fit, y_fit,Color=colors(2,:),LineWidth= 2);
+                            % Plot regression line
                             plot(x_fit, y_fit,Color=[.3 .3 .3],LineWidth= 2);
+                            % Display regression equation and correlation
                             text(1,6,sprintf('Freq=Speed*%.2f+%.2f, R=%.3f, p=%f', ...
                                 p(1),p(2),R(2,1),P(2,1)),"FontWeight","bold", ...
                                 "FontSize", 9, "Color",[.3 .3 .3]);
                             xlabel('Speed (cm/s)');ylabel('Frequency (Hz)')
                             legend(s,{'QWAKE','AWAKE'});
                             hold off;
+                            % Annotate plot with session info
                             text(0.01,1-0.01,strcat(ses.toStringShort, ...
                                 sprintf(' %.2f-%.2f',hours(twin(1)),hours(twin(2)))), ...
                                 Units="normalized", VerticalAlignment="top",FontSize=5);
+                            % Store correlation results
                             corr1tbl.ses=[corr1tbl.ses;selected_ses(ises)];
                             corr1tbl.cond=[corr1tbl.cond;string(ses.SessionInfo.Condition)];
                             corr1tbl.state=[corr1tbl.state;"WAKE"];
@@ -185,34 +202,45 @@ else
                             corr1tbl.coef0=[corr1tbl.coef0;p(2)];
                         end
                     end
+                    % Annotate position and speed plots
                     text(ax1,0.01, 1-0.01,ses.toStringShort,Units='normalized',VerticalAlignment='top',FontSize=5)
                     text(ax2,0.01, 1-0.01,ses.toStringShort,Units='normalized',VerticalAlignment='top',FontSize=5)
                     ff.save(strcat('Fig4-Speed-Freq',ses.getBaseName))
                 end
             end
         end
+        % Append results for all sessions
         alltbl=[alltbl;subtbl];
     end
+    % Convert columns to categorical for easier analysis
     alltbl.Session=categorical(alltbl.Session);
     alltbl.Block=categorical(alltbl.Block);
     alltbl.Condition=categorical(alltbl.Condition);
+    % Convert correlation results to table
     corr1tbl2=struct2table(corr1tbl);
     corr1tbl2.cond=categorical(corr1tbl2.cond);
     corr1tbl2.state=categorical(corr1tbl2.state);
+    % Create summary table for speed and states
     T1=[array2table(sesidsesbouts,VariableNames={'SessionID'})...
         array2table(categorical(statessesbouts),VariableNames={'States'})...
         array2table(spdsesbouts,VariableNames={'Speed'})...
         ];
+    % Save processed data
     save(fname,'T1',"corr1tbl2","alltbl");
 end
 
 %%
+% Save summary table for further analysis
 t1=alltbl(:,{'Condition','Session','state','StartZT','EndZT', ...
     'CentralFrequenyFooof','PowerFooof','Speed'});
 save('Scripts/Theta/Speed/theta_speed.mat', 't1')
+
 %%
+% Run hierarchical bootstrap analysis (function not shown)
 hierarchicalbootstrap
+
 %%
+% Plot correlation coefficients and regression results
 figure(9);clf;tiledlayout('flow');colors=colororder;
 conds=unique(corr1tbl2.cond);
 vars={'coef0','coef1','R','p'};
@@ -253,7 +281,9 @@ for icond=1:numel(conds)
     end
 end
 ff.save('corr fits')
+
 %% add speed over resc
+% Load rescue data and calculate mean speed in 30-min windows
 load('Scripts/Theta/resc.mat')
 sessions=unique(resc.Session);
 windowlength=minutes(30);
@@ -289,7 +319,9 @@ for ises=1:numel(sessions)
     end
 end
 save('Scripts/Theta/tspeed.mat','tspeed')
+
 %% plot tspeed
+% Plot mean speed for each session and state over time
 load('Scripts/Theta/tspeed.mat')
 sf=experiment.SessionFactory;
 st=sf.getSessionsTable;
