@@ -1,45 +1,33 @@
-## Overview
-This release contains the full analysis code and data files associated with the manuscript:
+## Citation and Versioning
 
-**"Sleep lowers awake theta frequency"**
+This repository is archived on **Zenodo** to ensure reproducibility.  
 
-## Contents
-- MATLAB scripts for generating manuscript figures:
-  - `Fig1intro1.m`, `Fig1intro1power.m`, `Fig2controls.m`, etc.
-- Supporting `.mat` data files (`stateratios-NSD.mat`, `tspeed.mat`, etc.).
-- README with usage instructions.
+- Each GitHub release is assigned a **version-specific DOI**, which points to the exact snapshot of code used in a given manuscript.  
+- Zenodo also provides a **concept DOI** that always resolves to the latest release.  
 
-## Requirements
-- MATLAB R2025a (tested)
-- Toolboxes: buzcode, fieldtrip, chronux, fooof
+For reproducibility, please cite the **version-specific DOI** corresponding to your work.  
+For general reference, you may use the **concept DOI**.
 
-## Usage
-Run the figure scripts directly in MATLAB to reproduce the analyses presented in the paper.  
-Example:  
-```matlab
->> Fig1intro1
-```
+**Current submission (version v0.1.3):**  
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17122995.svg)](https://doi.org/10.5281/zenodo.17122995)
 
+**Concept DOI (latest version):**  
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17122450.svg)](https://doi.org/10.5281/zenodo.17122450)
 
-## How to cite
+### How to cite
 
-If you use this code in your work, please cite:
-
-Utku Kaya, Md Jahangir Alam, Bapun Giri, Robbert Havekes, Ted Abel, & Kamran Diba.  
-**Sleep lowers awake theta frequency**.  
-Zenodo. https://doi.org/10.5281/zenodo.17122450
-
----
+Kaya U, Alam MJ, Giri B, Havekes R, Abel T, Diba K.  
+*Sleep lowers awake theta frequency*. Zenodo.  
+https://doi.org/10.5281/zenodo.17122995
 
 **BibTeX:**
 ```bibtex
 @software{kaya2025theta,
   author       = {Kaya, Utku and Alam, Md Jahangir and Giri, Bapun and Havekes, Robbert and Abel, Ted and Diba, Kamran},
   title        = {Sleep lowers awake theta frequency},
-  month        = {Sep},
   year         = {2025},
   publisher    = {Zenodo},
+  version      = {v0.1.3},
   doi          = {10.5281/zenodo.17122995},
-  url          = {https://doi.org/10.5281/zenodo.17122450}
+  url          = {https://doi.org/10.5281/zenodo.17122995}
 }
-```
